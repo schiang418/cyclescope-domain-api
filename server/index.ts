@@ -16,13 +16,16 @@ app.use(express.json());
 
 // Health check endpoint (REST)
 app.get('/health', (req, res) => {
+  const hasDatabase = !!process.env.DATABASE_URL;
+  const hasOpenAI = !!process.env.OPENAI_API_KEY && !!process.env.OPENAI_ASSISTANT_ID;
+
   res.json({
     status: 'ok',
     service: 'CycleScope Domain API',
     timestamp: new Date().toISOString(),
     version: '1.0.0',
-    database: 'not connected (Phase 2)',
-    openai: 'not configured (Phase 4)',
+    database: hasDatabase ? 'connected' : 'not connected',
+    openai: hasOpenAI ? 'configured' : 'not configured',
   });
 });
 
