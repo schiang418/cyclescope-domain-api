@@ -154,11 +154,14 @@ Please analyze each indicator across both timeframes and provide a comprehensive
 
     // Step 6: Parse JSON response
     console.log('[Domain Analysis] Parsing JSON...');
+    console.log('[Domain Analysis] Response preview:', responseText.substring(0, 200));
+    
     const jsonMatch = responseText.match(/```json\n([\s\S]*?)\n```/);
     let jsonText = jsonMatch ? jsonMatch[1] : responseText;
     
     // Try to find JSON object if not in code block
     if (!jsonMatch) {
+      console.log('[Domain Analysis] No JSON code block found, extracting JSON object...');
       const jsonStart = responseText.indexOf('{');
       const jsonEnd = responseText.lastIndexOf('}');
       if (jsonStart !== -1 && jsonEnd !== -1) {
@@ -166,8 +169,17 @@ Please analyze each indicator across both timeframes and provide a comprehensive
       }
     }
 
-    const analysis: DomainAnalysisResponse = JSON.parse(jsonText);
-    console.log('[Domain Analysis] JSON parsed successfully');
+    console.log('[Domain Analysis] JSON text length:', jsonText.length);
+    
+    let analysis: DomainAnalysisResponse;
+    try {
+      analysis = JSON.parse(jsonText);
+      console.log('[Domain Analysis] JSON parsed successfully');
+    } catch (parseError) {
+      console.error('[Domain Analysis] JSON parse error:', parseError);
+      console.error('[Domain Analysis] Failed JSON text (first 500 chars):', jsonText.substring(0, 500));
+      throw new Error(`Failed to parse JSON response: ${parseError instanceof Error ? parseError.message : 'Unknown error'}`);
+    }
     console.log(`[Domain Analysis] Indicators analyzed: ${analysis.indicators?.length || 0}`);
 
     // Validate response structure
