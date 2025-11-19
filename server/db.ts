@@ -1,7 +1,8 @@
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
 import { eq, and, lt, sql } from 'drizzle-orm';
-import { domainAnalyses, type DomainAnalysis, type InsertDomainAnalysis, type DomainAnalysisJSON } from '../drizzle/schema';
+import { domainAnalyses, DomainAnalysis, InsertDomainAnalysis, DomainAnalysisJSON } from '../drizzle/schema';
+import { getDomainConfig } from '../shared/domainConfig';
 
 let _db: ReturnType<typeof drizzle> | null = null;
 
@@ -68,6 +69,37 @@ export async function upsertDomainAnalysis(analysis: InsertDomainAnalysis): Prom
  * @param dimensionCode - Domain code (e.g., "macro", "leadership")
  * @returns Latest domain analysis or undefined if not found
  */
+/**
+ * Enrich analysis with chart URLs from domainConfig
+ */
+function enrichAnalysisWithChartUrls(analysis: DomainAnalysis): DomainAnalysis {
+  const domainConfig = getDomainConfig(analysis.dimensionCode);
+  if (!domainConfig || !analysis.fullAnalysis) {
+    return analysis;
+  }
+
+  // Add chart URLs to each indicator
+  const enrichedAnalysis = { ...analysis };
+  const fullAnalysis = enrichedAnalysis.fullAnalysis as any;
+  
+  if (fullAnalysis.indicators && Array.isArray(fullAnalysis.indicators)) {
+    fullAnalysis.indicators = fullAnalysis.indicators.map((indicator: any) => {
+      const indicatorConfig = domainConfig.indicators.find(ic => ic.id === indicator.indicator_id);
+      if (indicatorConfig) {
+        return {
+          ...indicator,
+          long_term_chart_url: indicatorConfig.longTermChartUrl,
+          short_term_chart_url: indicatorConfig.shortTermChartUrl,
+        };
+      }
+      return indicator;
+    });
+  }
+
+  enrichedAnalysis.fullAnalysis = fullAnalysis;
+  return enrichedAnalysis;
+}
+
 export async function getLatestDomainAnalysis(dimensionCode: string): Promise<DomainAnalysis | undefined> {
   const db = await getDb();
   if (!db) {
@@ -86,7 +118,10 @@ export async function getLatestDomainAnalysis(dimensionCode: string): Promise<Do
       .orderBy(sql`${domainAnalyses.date} DESC`)
       .limit(1);
 
-    return result[0];
+    if (result[0]) {
+      return enrichAnalysisWithChartUrls(result[0]);
+    }
+    return undefined;
   } catch (error) {
     console.error('[Database] Failed to get latest domain analysis:', error);
     return undefined;
