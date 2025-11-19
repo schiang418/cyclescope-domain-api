@@ -1,143 +1,312 @@
 # CycleScope Domain API
 
-Detailed domain-level market analysis API with both long-term and short-term chart analysis.
+Microservice for generating detailed domain analysis using OpenAI Assistants.
 
-## Overview
+---
 
-**cyclescope-domain-api** provides detailed domain-level analysis that complements the high-level summary from cyclescope-api's Gamma Assistant.
+## 🏗️ Architecture
 
-### Key Features
+This is a standalone microservice that:
+- Analyzes 6 market domains (Macro, Leadership, Breadth, Liquidity, Volatility, Sentiment)
+- Uses OpenAI Assistant API with chart image analysis
+- Stores analysis results in PostgreSQL database
+- Provides tRPC API endpoints for cyclescope-api integration
 
-- **Detailed Analysis:** Indicator-level breakdown for each domain
-- **Dual Timeframe:** Both long-term and short-term chart analysis
-- **6 Domains:** MACRO, LEADERSHIP, BREADTH, LIQUIDITY, VOLATILITY, SENTIMENT
-- **OpenAI Integration:** Uses specialized Domain Analysis Assistant
-- **5-Day Retention:** Automatic cleanup of old data
-- **HTML Generation:** Creates domain detail pages
+**3-Service Architecture:**
+```
+cyclescope-portal (Frontend)
+    ↓
+cyclescope-api (Orchestrator + Cron)
+    ↓
+cyclescope-domain-api (Domain Analysis) ← This service
+```
 
-## Quick Start
+---
 
-### Prerequisites
+## 🚀 Quick Start
 
+### **Prerequisites**
 - Node.js 22+
 - PostgreSQL database
-- OpenAI API key with access to Domain Analysis Assistant
+- OpenAI API key
+- OpenAI Assistant ID
 
-### Local Development
-
+### **Installation**
 ```bash
-# Install dependencies
 npm install
+```
 
-# Set environment variables
-cp .env.example .env
-# Edit .env with your credentials
+### **Environment Variables**
+```bash
+DATABASE_URL=postgresql://user:pass@host:5432/dbname
+OPENAI_API_KEY=sk-proj-YOUR_KEY_HERE
+OPENAI_ASSISTANT_ID=asst_YOUR_ASSISTANT_ID
+PORT=3000
+NODE_ENV=production
+```
 
-# Start development server
+### **Database Setup**
+```bash
+# Create table
+npm run db:push
+
+# Or manually run SQL
+psql $DATABASE_URL < create_table.sql
+```
+
+### **Run Development Server**
+```bash
 npm run dev
 ```
 
-Server runs on http://localhost:3000
+### **Run Production Server**
+```bash
+npm run build
+npm start
+```
 
-### API Endpoints
+---
 
-- **GET /health** - Health check
-- **GET /api/trpc/health** - tRPC health check
-- **POST /api/trpc/domain.analyze** - Analyze domain (not yet implemented)
-- **GET /api/trpc/domain.latest** - Get latest domain analysis (not yet implemented)
+## 📊 API Endpoints
 
-## Project Status
+### **Health Check**
+```
+GET /health
+```
 
-- ✅ Phase 1: Project Setup (COMPLETE)
-- ⏳ Phase 2: Database Schema (TODO)
-- ⏳ Phase 3: Domain Configuration (TODO)
-- ⏳ Phase 4: OpenAI Integration (TODO)
-- ⏳ Phase 5: JSON Parser (TODO)
-- ⏳ Phase 6: API Endpoints (TODO)
-- ⏳ Phase 7: HTML Generation (TODO)
-- ⏳ Phase 8: Deploy to Railway (TODO)
-- ⏳ Phase 9: Update Portal (TODO)
-- ⏳ Phase 10: Testing & Documentation (TODO)
+### **tRPC Endpoints**
+```
+POST /api/trpc/domain.analyze
+POST /api/trpc/domain.latest
+POST /api/trpc/domain.all
+POST /api/trpc/domain.history
+```
 
-## Tech Stack
+---
 
-- **Runtime:** Node.js 22
-- **Language:** TypeScript
-- **Framework:** Express 4
-- **API:** tRPC 11
-- **Database:** PostgreSQL
-- **ORM:** Drizzle ORM
-- **AI:** OpenAI Assistants API
-- **Deployment:** Railway (Docker)
+## 🚢 Railway Deployment
 
-## Project Structure
+### **Step 1: Create Railway Project**
+1. Go to [Railway.app](https://railway.app)
+2. Click "New Project"
+3. Select "Deploy from GitHub repo"
+4. Choose `schiang418/cyclescope-domain-api`
+
+### **Step 2: Set Environment Variables**
+In Railway dashboard → Variables:
+```
+DATABASE_URL=postgresql://postgres:PASSWORD@postgres.railway.internal:5432/railway
+OPENAI_API_KEY=sk-proj-YOUR_OPENAI_API_KEY_HERE
+OPENAI_ASSISTANT_ID=asst_yV08iHKU0cx8V7kt9qdYzeSs
+PORT=3000
+NODE_ENV=production
+```
+
+**Important:** Use Railway's **Private Network URL** for DATABASE_URL:
+- ✅ `postgres.railway.internal` (private, faster, free)
+- ❌ `maglev.proxy.rlwy.net` (public, slower, costs egress)
+
+### **Step 3: Deploy**
+Railway will automatically:
+1. Detect Node.js project
+2. Run `npm install`
+3. Run `npm run build`
+4. Start server with `npm start`
+
+### **Step 4: Test**
+```bash
+# Health check
+curl https://your-app.railway.app/health
+
+# tRPC health
+curl https://your-app.railway.app/api/trpc/health
+```
+
+---
+
+## 🗄️ Database Schema
+
+**Table:** `domain_analyses`
+
+| Column | Type | Description |
+|--------|------|-------------|
+| id | SERIAL | Primary key |
+| date | DATE | Analysis date |
+| dimension_code | VARCHAR(50) | Domain code (MACRO, LEADERSHIP, etc.) |
+| analysis_json | JSONB | Full OpenAI response |
+| created_at | TIMESTAMP | Record creation time |
+| updated_at | TIMESTAMP | Last update time |
+
+**Unique Constraint:** `(date, dimension_code)`
+
+---
+
+## 📁 Project Structure
 
 ```
 cyclescope-domain-api/
 ├── server/
-│   ├── index.ts                      # Express + tRPC server entry
-│   ├── routers.ts                    # API endpoints
-│   ├── db.ts                         # Database operations
-│   ├── trpc.ts                       # tRPC setup
 │   ├── assistants/
-│   │   └── domainAnalysis.ts         # OpenAI integration
-│   ├── parsers/
-│   │   └── domainParser.ts           # JSON validation
-│   ├── generators/
-│   │   └── htmlGenerator.ts          # HTML generation
-│   └── types/
-│       └── domain.ts                 # TypeScript types
+│   │   └── domainAnalysis.ts    # OpenAI Assistant integration
+│   ├── types/
+│   │   └── domain.ts             # TypeScript types
+│   ├── db.ts                     # Database operations
+│   ├── routers.ts                # tRPC routers
+│   └── index.ts                  # Express server
 ├── drizzle/
-│   ├── schema.ts                     # Database schema
-│   └── migrations/                   # Auto-generated migrations
+│   └── schema.ts                 # Database schema
 ├── shared/
-│   └── domainConfig.ts               # Domain configurations
-├── public/
-│   └── domains/                      # Generated HTML pages
-├── .env.example                      # Environment variables template
-├── package.json                      # Dependencies
-├── tsconfig.json                     # TypeScript config
-└── README.md                         # This file
+│   └── domainConfig.ts           # Domain configurations
+├── package.json
+├── tsconfig.json
+└── README.md
 ```
 
-## Development
+---
 
-### Available Scripts
+## 🔧 Development
 
-- `npm run dev` - Start development server with hot reload
-- `npm run build` - Build TypeScript to JavaScript
-- `npm start` - Start production server
-- `npm run db:push` - Push database schema changes
-- `npm run db:studio` - Open Drizzle Studio (database GUI)
+### **Run Tests**
+```bash
+# Test database connection
+npm run test:db
 
-### Environment Variables
+# Test OpenAI Assistant
+npm run test:assistant
 
-See `.env.example` for required environment variables.
+# Test environment variables
+npm run test:env
+```
 
-## Integration with CycleScope
+### **Database Migrations**
+```bash
+# Generate migration
+npm run db:generate
 
-### cyclescope-api (Main API)
+# Push schema to database
+npm run db:push
 
-- **Purpose:** High-level cycle-aware analysis
-- **Data:** Gamma (summary) + Delta + Fusion
-- **Use Case:** Main dashboard
+# Open Drizzle Studio
+npm run db:studio
+```
 
-### cyclescope-domain-api (This Service)
+---
 
-- **Purpose:** Detailed domain-level analysis
-- **Data:** Indicator-level breakdown (long-term + short-term)
-- **Use Case:** Domain detail pages
+## 📝 Domain Configuration
 
-### cyclescope-portal (Frontend)
+**6 Domains:**
+1. **MACRO** - Secular Trend, Cyclical Trend, Intermediate Trend
+2. **LEADERSHIP** - Sector Leadership, Factor Leadership
+3. **BREADTH** - Advance-Decline, New Highs-Lows, Participation
+4. **LIQUIDITY** - Credit Spreads, Yield Curve, Fed Policy
+5. **VOLATILITY** - VIX, Put/Call Ratio, Skew
+6. **SENTIMENT** - Bull/Bear Ratio, AAII Survey, CNN Fear & Greed
 
-- **Main Dashboard:** Calls cyclescope-api
-- **Domain Detail Pages:** Calls cyclescope-domain-api
+**19 Indicators Total**
 
-## License
+Each indicator has:
+- Long-term chart URL (StockCharts.co)
+- Short-term chart URL (StockCharts.co)
+- Display name
+- Category
 
-ISC
+---
 
-## Author
+## 🤖 OpenAI Assistant Configuration
 
-CycleScope Team
+**Assistant ID:** `asst_yV08iHKU0cx8V7kt9qdYzeSs`
+
+**Capabilities:**
+- Image analysis (chart screenshots)
+- JSON response format
+- Multi-turn conversation (for batch chart analysis)
+
+**Analysis Flow:**
+1. Create thread
+2. Send long-term charts (batch 1)
+3. Send short-term charts (batch 2)
+4. Run assistant
+5. Poll for completion
+6. Parse JSON response
+
+---
+
+## 📊 Integration with cyclescope-api
+
+**cyclescope-api** will call this service during cron job:
+
+```typescript
+// In cyclescope-api cron job
+const response = await fetch('https://domain-api.railway.app/api/trpc/domain.analyze', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    dimensionCode: 'MACRO',
+    asOfDate: '2025-11-19'
+  })
+});
+
+const analysis = await response.json();
+// Store in daily_snapshots table
+```
+
+---
+
+## 🐛 Troubleshooting
+
+### **Database Connection Error**
+- Check `DATABASE_URL` format
+- Ensure Railway PostgreSQL service is running
+- Use private network URL (`postgres.railway.internal`)
+
+### **OpenAI API Error**
+- Verify `OPENAI_API_KEY` is set correctly
+- Check Assistant ID exists
+- Ensure API key has sufficient credits
+
+### **Build Error**
+- Clear Railway build cache
+- Check Node.js version (requires 22+)
+- Verify all dependencies are in `package.json`
+
+---
+
+## 📚 Documentation
+
+- [Architecture Document](./CycleScope-Domain-API-Architecture.md)
+- [Phase 1 Complete](./PHASE1_COMPLETE.md)
+- [Phase 2 Complete](./PHASE2_COMPLETE.md)
+- [Phase 3 Complete](./PHASE3_COMPLETE.md)
+- [Phase 4 Complete](./PHASE4_COMPLETE.md)
+
+---
+
+## 📝 Project Status
+
+- ✅ **Phase 1:** Project Setup (COMPLETE)
+- ✅ **Phase 2:** Database Schema (COMPLETE)
+- ✅ **Phase 3:** Domain Configuration (COMPLETE)
+- ✅ **Phase 4:** OpenAI Integration (COMPLETE)
+- ✅ **Phase 5:** JSON Parser (COMPLETE - included in Phase 4)
+- ✅ **Phase 6:** API Endpoints (COMPLETE - included in Phase 4)
+- ⏭️ **Phase 7:** HTML Generation (SKIPPED - focus on API first)
+- 🚀 **Phase 8:** Deploy to Railway (IN PROGRESS)
+- ⏳ **Phase 9:** Update Portal (TODO)
+- ⏳ **Phase 10:** Testing & Documentation (TODO)
+
+---
+
+## 📄 License
+
+MIT
+
+---
+
+## 👥 Contributors
+
+- schiang418
+
+---
+
+**Status:** ✅ Phases 1-6 Complete, Ready for Railway Deployment
 
