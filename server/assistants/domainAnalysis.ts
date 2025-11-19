@@ -51,7 +51,8 @@ export async function generateDomainAnalysis(
   console.log(`[Domain Analysis] Total charts: ${chartUrls.length}`);
 
   // Create instructions for the assistant
-  const instructions = `
+  const instructions = `engine
+
 Analyze the ${domainConfig.name} domain for ${asOfDate}.
 
 Domain: ${domainConfig.name}
