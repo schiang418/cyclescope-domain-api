@@ -156,20 +156,29 @@ Please analyze each indicator across both timeframes and provide a comprehensive
     console.log('[Domain Analysis] Parsing JSON...');
     console.log('[Domain Analysis] Response preview:', responseText.substring(0, 200));
     
-    const jsonMatch = responseText.match(/```json\n([\s\S]*?)\n```/);
-    let jsonText = jsonMatch ? jsonMatch[1] : responseText;
+    let jsonText = responseText;
     
-    // Try to find JSON object if not in code block
-    if (!jsonMatch) {
-      console.log('[Domain Analysis] No JSON code block found, extracting JSON object...');
-      const jsonStart = responseText.indexOf('{');
-      const jsonEnd = responseText.lastIndexOf('}');
+    // Step 1: Remove markdown code blocks if present (```json ... ```)
+    jsonText = jsonText.replace(/^```json\s*\n?/i, '').replace(/\n?```\s*$/i, '').trim();
+    console.log('[Domain Analysis] After removing markdown blocks, length:', jsonText.length);
+    
+    // Step 2: If still no valid JSON, extract JSON object from text
+    // This handles cases where OpenAI adds leading text before JSON
+    if (!jsonText.startsWith('{')) {
+      console.log('[Domain Analysis] Leading text detected, extracting JSON object...');
+      const jsonStart = jsonText.indexOf('{');
+      const jsonEnd = jsonText.lastIndexOf('}');
       if (jsonStart !== -1 && jsonEnd !== -1) {
-        jsonText = responseText.substring(jsonStart, jsonEnd + 1);
+        jsonText = jsonText.substring(jsonStart, jsonEnd + 1);
+        console.log('[Domain Analysis] Extracted JSON from position', jsonStart, 'to', jsonEnd);
+      } else {
+        console.error('[Domain Analysis] No JSON object found in response');
+        throw new Error('No JSON object found in assistant response');
       }
     }
 
-    console.log('[Domain Analysis] JSON text length:', jsonText.length);
+    console.log('[Domain Analysis] Final JSON text length:', jsonText.length);
+    console.log('[Domain Analysis] JSON starts with:', jsonText.substring(0, 50));
     
     let analysis: DomainAnalysisResponse;
     try {
