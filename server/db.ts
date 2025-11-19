@@ -194,10 +194,11 @@ export async function cleanupOldAnalyses(): Promise<number> {
       .delete(domainAnalyses)
       .where(lt(domainAnalyses.date, cutoffDateStr));
 
-    const deletedCount = result.rowCount || 0;
-    console.log(`[Database] Cleaned up ${deletedCount} old domain analyses (older than ${cutoffDateStr})`);
+    // Drizzle ORM doesn't return rowCount for postgres-js
+    // We'll log the operation but can't get exact count
+    console.log(`[Database] Cleaned up old domain analyses (older than ${cutoffDateStr})`);
 
-    return deletedCount;
+    return 0; // Return 0 as we can't get the actual count with postgres-js
   } catch (error) {
     console.error('[Database] Failed to cleanup old analyses:', error);
     return 0;
