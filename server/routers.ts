@@ -77,6 +77,91 @@ export const appRouter = router({
       }),
 
     /**
+     * Analyze all 6 domains in sequence
+     * 
+     * This endpoint:
+     * 1. Loops through all 6 domains (MACRO, LEADERSHIP, BREADTH, LIQUIDITY, VOLATILITY, SENTIMENT)
+     * 2. Calls OpenAI Assistant for each domain
+     * 3. Stores results in database
+     * 4. Returns summary of success/failure for each domain
+     * 
+     * Used by cyclescope-automation workflow for daily batch analysis
+     */
+    analyzeAll: publicProcedure
+      .input(z.object({
+        asOfDate: z.string().optional(), // YYYY-MM-DD format, defaults to today
+      }))
+      .mutation(async ({ input }) => {
+        const date = input.asOfDate || new Date().toISOString().split('T')[0];
+        const domains: Array<'MACRO' | 'LEADERSHIP' | 'BREADTH' | 'LIQUIDITY' | 'VOLATILITY' | 'SENTIMENT'> = [
+          'MACRO',
+          'LEADERSHIP',
+          'BREADTH',
+          'LIQUIDITY',
+          'VOLATILITY',
+          'SENTIMENT',
+        ];
+
+        console.log(`[API] Starting batch analysis for all ${domains.length} domains as of ${date}`);
+
+        const results: Array<{
+          dimensionCode: string;
+          success: boolean;
+          error?: string;
+        }> = [];
+
+        let successCount = 0;
+        let failureCount = 0;
+
+        // Process each domain sequentially
+        for (const dimensionCode of domains) {
+          try {
+            console.log(`[API] Processing ${dimensionCode}...`);
+            const startTime = Date.now();
+
+            // Generate analysis using OpenAI Assistant
+            const analysisJSON = await generateDomainAnalysis(dimensionCode, date);
+
+            // Parse and prepare for database
+            const dbRecord = parseAssistantJSON(analysisJSON, date);
+
+            // Store in database
+            await upsertDomainAnalysis(dbRecord);
+
+            const duration = ((Date.now() - startTime) / 1000).toFixed(1);
+            console.log(`[API] ✓ ${dimensionCode} completed in ${duration}s`);
+
+            results.push({
+              dimensionCode,
+              success: true,
+            });
+            successCount++;
+          } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+            console.error(`[API] ✗ ${dimensionCode} failed:`, errorMessage);
+
+            results.push({
+              dimensionCode,
+              success: false,
+              error: errorMessage,
+            });
+            failureCount++;
+          }
+        }
+
+        console.log(`[API] Batch analysis complete: ${successCount}/${domains.length} succeeded, ${failureCount} failed`);
+
+        return {
+          success: successCount > 0, // Consider success if at least one domain succeeded
+          date,
+          totalDomains: domains.length,
+          successCount,
+          failureCount,
+          results,
+        };
+      }),
+
+    /**
      * Get latest domain analysis for a specific dimension
      */
     latest: publicProcedure
