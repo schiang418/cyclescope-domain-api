@@ -76,10 +76,13 @@ export async function getLatestDomainAnalysis(dimensionCode: string): Promise<Do
   }
 
   try {
+    // Convert to lowercase for case-insensitive lookup
+    const normalizedCode = dimensionCode.toLowerCase();
+    
     const result = await db
       .select()
       .from(domainAnalyses)
-      .where(eq(domainAnalyses.dimensionCode, dimensionCode))
+      .where(eq(domainAnalyses.dimensionCode, normalizedCode))
       .orderBy(sql`${domainAnalyses.date} DESC`)
       .limit(1);
 
@@ -156,10 +159,13 @@ export async function getDomainAnalysisHistory(
   }
 
   try {
+    // Convert to lowercase for case-insensitive lookup
+    const normalizedCode = dimensionCode.toLowerCase();
+    
     const results = await db
       .select()
       .from(domainAnalyses)
-      .where(eq(domainAnalyses.dimensionCode, dimensionCode))
+      .where(eq(domainAnalyses.dimensionCode, normalizedCode))
       .orderBy(sql`${domainAnalyses.date} DESC`)
       .limit(limit);
 
