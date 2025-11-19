@@ -261,7 +261,7 @@ export const VALID_DOMAIN_CODES = ALL_DOMAINS.map(d => d.code);
  * Get domain configuration by code
  */
 export function getDomainConfig(code: string): DomainConfig | undefined {
-  return ALL_DOMAINS.find(d => d.code === code);
+  return ALL_DOMAINS.find(d => d.code === code.toLowerCase());
 }
 
 /**
