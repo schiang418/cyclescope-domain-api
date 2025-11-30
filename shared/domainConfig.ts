@@ -159,7 +159,7 @@ const LIQUIDITY_DOMAIN: DomainConfig = {
   description: 'Analyzes credit conditions and financial market liquidity',
   indicators: [
     {
-      id: 'hyg-ief',
+      id: 'hyg_ief',
       name: 'High Yield vs Treasury',
       symbol: 'HYG:IEF',
       role: 'Credit risk appetite',
@@ -167,7 +167,7 @@ const LIQUIDITY_DOMAIN: DomainConfig = {
       shortTermChartUrl: 'https://cyclescope-delta-dashboard-production.up.railway.app/charts/04_HYG_IEF.png',
     },
     {
-      id: 'jnk-ief',
+      id: 'jnk_ief',
       name: 'Junk Bond vs Treasury',
       symbol: 'JNK:IEF',
       role: 'High yield credit',
@@ -175,7 +175,7 @@ const LIQUIDITY_DOMAIN: DomainConfig = {
       shortTermChartUrl: 'https://cyclescope-delta-dashboard-production.up.railway.app/charts/17_JNK_IEF.png',
     },
     {
-      id: 'lqd-ief',
+      id: 'lqd_ief',
       name: 'Investment Grade vs Treasury',
       symbol: 'LQD:IEF',
       role: 'Investment grade credit',
